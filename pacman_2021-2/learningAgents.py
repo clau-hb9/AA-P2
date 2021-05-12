@@ -119,7 +119,6 @@ class ReinforcementAgent(ValueEstimationAgent):
 
             NOTE: Do *not* override or call this function
         """
-        print("Entro en observeTransition")
         self.episodeRewards += deltaReward
         self.update(state,action,nextState,deltaReward)
 
@@ -140,10 +139,10 @@ class ReinforcementAgent(ValueEstimationAgent):
         else:
             self.accumTestRewards += self.episodeRewards
         self.episodesSoFar += 1
-        if self.episodesSoFar >= self.numTraining:
+        #if self.episodesSoFar >= self.numTraining:
             # Take off the training wheels
-            self.epsilon = 0.0    # no exploration
-            self.alpha = 0.0      # no learning
+            #self.epsilon = 0.0    # no exploration
+            #self.alpha = 0.0      # no learning
 
     def isInTraining(self):
         return self.episodesSoFar < self.numTraining
@@ -194,14 +193,13 @@ class ReinforcementAgent(ValueEstimationAgent):
     ###################
     # Pacman Specific #
     ###################
-    def reinforcementLearnerObservationFunction(self, state):
+    def observationFunctionReinforcementAgent(self, state):
         """
             This is where we ended up after our last action.
             The simulation should somehow ensure this is called
         """
         if not self.lastState is None:
             reward = state.getScore() - self.lastState.getScore()
-            print("Llamo a reinforcementLearnerObservationFunction")
             self.observeTransition(self.lastState, self.lastAction, state, reward)
         return state
 
@@ -246,5 +244,5 @@ class ReinforcementAgent(ValueEstimationAgent):
             self.episodeStartTime = time.time()
 
         if self.episodesSoFar == self.numTraining:
-            msg = 'Training Done (turning off epsilon and alpha)'
+            msg = 'Training Done' #(turning off epsilon and alpha)'
             print('%s\n%s' % (msg,'-' * len(msg)))

@@ -85,7 +85,7 @@ class BustersAgent(object):
         self.ghostBeliefs = [inf.getBeliefDistribution() for inf in self.inferenceModules]
         self.firstMove = True
 
-    def observationFunction(self, gameState):
+    def observationFunctionBusterAgent(self, gameState):
         "Removes the ghost states from the gameState"
         agents = gameState.data.agentStates
         gameState.data.agentStates = [agents[0]] + [None for i in range(1, len(agents))]

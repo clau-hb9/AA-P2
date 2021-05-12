@@ -523,7 +523,7 @@ class Game(object):
     The Game manages the control flow, soliciting actions from agents.
     """
 
-    def __init__( self, agents, display, rules, startingIndex=0, muteAgents=False, catchExceptions=False ):
+    def __init__( self, agents, display, rules, startingIndex=0, muteAgents=False, catchExceptions=False, maxTicks=-1 ):
         self.agentCrashed = False
         self.agents = agents
         self.display = display
@@ -538,6 +538,10 @@ class Game(object):
         self.agentTimeout = False
         import io
         self.agentOutput = [io.StringIO() for agent in agents]
+        self.maxTicksEnabled = False
+        if maxTicks > 0:
+            self.maxTicksEnabled = True
+            self.maxTicks = maxTicks
 
     def getProgress(self):
         if self.gameOver:
@@ -617,15 +621,15 @@ class Game(object):
                 self.unmute()
 
             # CLAUDIA
-            if 'startEpisode' in dir(agent): agent.startEpisode()
+            #if 'startEpisode' in dir(agent): agent.startEpisode()
 
         agentIndex = self.startingIndex
         numAgents = len( self.agents )
         step = 0
 
         
-        # extra observation functions
-        observationFunctions=('observationFunction', 'reinforcementLearnerObservationFunction')
+        # nombre de las funciones, teníamos problemas para que las diferenciara, solo usaba el de busterAgents
+        funciones = ('observationFunctionBusterAgent', 'observationFunctionReinforcementAgent')
 
         while not self.gameOver:
             # Fetch the next agent
@@ -634,13 +638,13 @@ class Game(object):
             skip_action = False
                 
             # Generate an observation of the state
-            for obsFun in observationFunctions:
-                if obsFun in dir( agent ):
-                    funToCall = getattr(agent,obsFun)
+            for funcion in funciones:
+                if funcion in dir( agent ):
+                    funcionSeleccionada = getattr(agent,funcion)
                     self.mute(agentIndex)
                     if self.catchExceptions:
                         try:
-                            timed_func = TimeoutFunction(funToCall, int(self.rules.getMoveTimeout(agentIndex)))
+                            timed_func = TimeoutFunction(funcionSeleccionada, int(self.rules.getMoveTimeout(agentIndex)))
                             try:
                                 start_time = time.time()
                                 observation = timed_func(self.state.deepCopy())
@@ -653,8 +657,7 @@ class Game(object):
                             self.unmute()
                             return
                     else:
-                        print("Llamo a " + str(funToCall)+" del agent "+str(agent))
-                        observation = funToCall(self.state.deepCopy())
+                        observation = funcionSeleccionada(self.state.deepCopy())
                     self.unmute()
                 else:
                     observation = self.state.deepCopy()
@@ -742,8 +745,13 @@ class Game(object):
             # GUARDAMOS LA Q-TABLE
             if 'writeQtable' in dir(agent):
                 agent.writeQtable()
+            
+            # UC3M-AA-OCL, if defined a max number of ticks, will check here
+            if self.maxTicksEnabled and (step > self.maxTicks):
+                print ("!!!!MAX TICKS REACHED!!! after "+str(step)+" ticks")
+                self.gameOver = True
 
-            # SI AÑADIMOS MÁXIMO NÚMERO DE TICKS
+            
 
 
         
@@ -761,8 +769,8 @@ class Game(object):
                     return
 
             #CLAUDIA
-            if 'stopEpisode' in dir(agent):
-                agent.stopEpisode() 
+            #if 'stopEpisode' in dir(agent):
+            #    agent.stopEpisode() 
 
             if 'writeQtable' in dir(agent):
                 agent.writeQtable()     

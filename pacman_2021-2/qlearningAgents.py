@@ -10,63 +10,59 @@ from learningAgents import ReinforcementAgent
 
 
 """ CONSTANTS """
-QTABLE_FOLDER           = 'qtables'
-QTABLE_FILENAME         = 'pacman_qtable.txt'
-
+TABLE_FOLDER           = 'qtables'
+path_qTable        = 'pacman_qtable.txt'
 POSSIBLE_ACTIONS        = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
 
-""" FLAGS """
-TRACE_SHOW_QTABLE       = False
-TRACE_ACTION_DECISION   = False
-TRACE_UPDATE            = False
-TRACE_BEST_ACTION       = False
-TRACE_STATE             = False
 
 class QLearningAgent(BustersAgent, ReinforcementAgent):
     
     def __init__(self, **args):
-        # BusterAgents arguments
+        # Iniciamos el agente BusterAgents por una parte con sus argumentos
         busters_agent_args = {}
         busters_agent_args['ghostAgents'] = args['ghostAgents']
 
-        # ReinforcementAgent arguments
+        # Iniciamos el agente ReinforcementAgent por otra parte con sus argumentos
         reinforcement_agent_args = {}
-        for attr in ['alpha', 'epsilon', 'gamma']:
-            reinforcement_agent_args[attr] = args[attr]
+        reinforcement_agent_args['alpha'] = args['alpha']
+        reinforcement_agent_args['epsilon'] = args['epsilon']
+        reinforcement_agent_args['gamma'] = args['gamma']
         reinforcement_agent_args['actionFn'] = self.getPossibleActions
-
-        "Initialize Agents"
+        
+        # Los inicializo a los dos
         BustersAgent.__init__(self, **busters_agent_args)
         ReinforcementAgent.__init__(self, **reinforcement_agent_args)
 
-        "Q-Table"
+        "Cargamos la Q-Table"
         if not os.path.exists("qtable.txt"):
-            self.createInitialQTable("qtable.txt")
-
-        self.table_file = open("qtable.txt", 'r+')
+            self.qtableInicial("qtable.txt")
+        
+        self.path_qTable = open("qtable.txt", 'r+')
         self.qtable = self.readQtable()
         self.writeQtable()
 
-        # Agent stats
-        self.stats = {
-            'final_score'     : 0,
-            'qtable_updates'  : 0,
-        }
+        # Guardo valores relevantes sobre el estado del juego
+        self.score_final=0
+        self.num_updates=0
+        
+
+    def getPossibleActions(self, state):
+        return POSSIBLE_ACTIONS
 
     #NEW
-    """ """
-    def registerInitialState(self, game_state):
-        BustersAgent.registerInitialState(self, game_state)
+    def registerInitialState(self, gameState):
+        ReinforcementAgent.registerInitialState(self, gameState)
+        BustersAgent.registerInitialState(self, gameState)
         self.countActions = 0
     
-    """ """    
     def __del__(self):
         "Destructor. Invokation at the end of each episode"
         self.writeQtable()
-        self.table_file.close()
+        self.path_qTable.close()
 
     #NEW
-    def createInitialQTable(self, path):
+    # Función que nos permite crear el fichero qTable vacio
+    def qtableInicial(self, path):
         file = open(path, 'w')
         file.flush()
         file.close()
@@ -74,18 +70,23 @@ class QLearningAgent(BustersAgent, ReinforcementAgent):
     #MODIFIED
     def readQtable(self):
         "Read qtable from disc"
-        table = self.table_file.readlines()
-        q_table = {}
+        table = self.path_qTable.readlines()
+        extra_table = {}
 
+        # Realizamos un bucle respecto al numero de filas de la qtable, que son los estados
         for i, line in enumerate(table):
+            #Separamos las filas del fichero
             row = line.split()
+            #Selecciono el estado
             state = row[0]
             actions = []
+            #Recorremos las acciones incluidas en el estado y almacenamos su valor
             for n in range(1, len(row)):
                 actions.append(float(row[n]))
-            q_table[state] = actions
+            # Añadimos la lista de acciones al estado correpondiente
+            extra_table[state] = actions
 
-        return q_table
+        return extra_table
 
     #UPDATED (ellos cambian mas cosas)
     """def writeQtable(self):
@@ -94,76 +95,113 @@ class QLearningAgent(BustersAgent, ReinforcementAgent):
             return
 
         "Write qtable to disc"
-        self.table_file.seek(0)
-        self.table_file.truncate()
+        self.path_qTable.seek(0)
+        self.path_qTable.truncate()
 
         for line in self.qtable:
             for item in line:
-                self.table_file.write(str(item)+" ")
-            self.table_file.write("\n")
+                self.path_qTable.write(str(item)+" ")
+            self.path_qTable.write("\n")
 
-        self.table_file.flush()
+        self.path_qTable.flush()
     """
-    """ UPDATES QTABLE FILE """
+    #UPDATED
     def writeQtable(self):
+        # Si no hay tasa de aprendizaje -> la tabla no se va a modificar
         if self.alpha == 0: 
             return
 
-        self.table_file.seek(0)
-        self.table_file.truncate()
+        #Nos situamos al principio del fichero y borramos todos los valores de qtable.txt actuales
+        self.path_qTable.seek(0)
+        self.path_qTable.truncate()
 
-        if TRACE_SHOW_QTABLE: 
-            self.trace("\n\nQTABLE>\n")
 
-        for i, (k, v) in enumerate(sorted(self.qtable.items())):
-            vstr = ' '.join(['{:.4f}'.format(x) for x in v])
-            self.table_file.write(k + ' ' + vstr + '\n')
+        # Ordenamos los estados de la qtable y los recorremos para escribirlos
+        for i, (k, v) in enumerate(self.qtable.items()):
+            
+            # Recorro cada accion y añado su valor
+            vstr = ' '.join(['{:.3f}'.format(x) for x in v])
+            self.path_qTable.write(k + ' ' + vstr + '\n')
 
-            if TRACE_SHOW_QTABLE:
-                self.trace('[' + k + '] =' + '(' + vstr + ')')
+        self.path_qTable.flush()
 
-        self.table_file.flush()
-
+    #MODIFIED
     def printQtable(self):
         "Print qtable"
         for line in self.qtable.items():
             print(line)
         print("\n")    
 
-     #NEW       
-    def getPossibleActions(self, state):
-        return POSSIBLE_ACTIONS
+    
+
 
     #NEW --> AQUI DEFINIMOS EL ESTADO QUE QUERAMOS!!
-    def computeQLearningState(self, game_state):
+    def definicionEstado(self, gameState):
             # Adjacents : 3 values (empty, wall, useful) ^ 8 (positions)
-            pacman_position = game_state.getPacmanPosition()
-            ghosts_positions = game_state.getGhostPositions()
+            pacman_position = gameState.getPacmanPosition()
+            posicion_fantasmas = gameState.getGhostPositions()
 
             state = '[('
-            for i in range(-1,2,1):
+            # Miro lo que tengo a los lados
+            for i in range (-1, 3, 2):
+                if gameState.hasWall(pacman_position[0] + i, pacman_position[1]):
+                    state += 'W'
+                elif (pacman_position[0] + i, pacman_position[1]) in posicion_fantasmas:
+                    state += 'G'
+                else:
+                    state += 'E'
+                # Miro las casillas que tengo encima y debajo del lado al que me haya movido --> la diagonal al pacman   
+                for k in range (-1, 3, 2):
+                    if gameState.hasWall(pacman_position[0] + i, pacman_position[1] + k):
+                        state += 'W'
+                    elif (pacman_position[0] + i, pacman_position[1] + k) in posicion_fantasmas:
+                        state += 'G'
+                    else:
+                        state += 'E'
+
+            
+            # Miro lo que tengo encima y debajo
+            for j in range (-1, 3, 2):
+                if gameState.hasWall(pacman_position[0], pacman_position[1]+j):
+                    state += 'W'
+                elif (pacman_position[0], pacman_position[1]+j) in posicion_fantasmas:
+                    state += 'G'
+                else:
+                    state += 'E'
+            state += ')'
+            
+
+            
+            if any(x != None for x in gameState.data.ghostDistances):
+                fantasma_index = gameState.data.ghostDistances.index(min(x for x in gameState.data.ghostDistances if x is not None))
+                distancer = Distancer(gameState.data.layout)
+                state += '(' + str(distancer.getDistance(pacman_position, posicion_fantasmas[fantasma_index])) + ')'
+            
+            
+
+            """ for i in range(-1,2,1):
                 for j in range(-1,2,1):
                     if i == 0 and j == 0:
                         continue
                     try:
-                        if game_state.hasWall(pacman_position[0] + i, pacman_position[1] + j):
+                        if gameState.hasWall(pacman_position[0] + i, pacman_position[1] + j):
                             state += 'W'
                         elif (pacman_position[0] + i, pacman_position[1] + j) in ghosts_positions:
                             state += 'G'
-                        elif game_state.hasFood(pacman_position[0] + i, pacman_position[1] + j):
+                        elif gameState.hasFood(pacman_position[0] + i, pacman_position[1] + j):
                             state += 'F'
                         else:
                             state += 'E'
                     except:
                         state += 'W'
-
-            state += ')'
+            """
+            #state += ')'
 
             # Rel pos closest ghost
             #getDistanceNearestFood
-
-            if any(x != None for x in game_state.data.ghostDistances):
-                ghost_index = game_state.data.ghostDistances.index(min(x for x in game_state.data.ghostDistances if x is not None))
+            """
+            if any(x != None for x in gameState.data.ghostDistances):
+                ghost_index = gameState.data.ghostDistances.index(min(x for x in gameState.data.ghostDistances if x is not None))
                 diff_x, diff_y = (p - g for p, g in zip(ghosts_positions[ghost_index], pacman_position))
                 if diff_y > 0:
                     if diff_x > 0:
@@ -186,19 +224,19 @@ class QLearningAgent(BustersAgent, ReinforcementAgent):
                         state += '(L)'
                     else:
                         state += '(O)'
-                distancer = Distancer(game_state.data.layout)
+                distancer = Distancer(gameState.data.layout)
                 state += '(' + str(distancer.getDistance(pacman_position, ghosts_positions[ghost_index]))
-            state += ')(' + ('last' if len([living for living in game_state.getLivingGhosts() if living is True]) == 1 else 'more')
-
+            state += ')(' + ('last' if len([living for living in gameState.getLivingGhosts() if living is True]) == 1 else 'more')
+            """
 
             # getDistanceNearestFood
-            state += ')'
-            if(game_state.getNumFood() > 0):
+            """state += ')'
+            if(gameState.getNumFood() > 0):
                 minDistance = 900000
                 minPosition = ()
-                for i in range(game_state.data.layout.width):
-                    for j in range(game_state.data.layout.height):
-                        if game_state.hasFood(i, j):
+                for i in range(gameState.data.layout.width):
+                    for j in range(gameState.data.layout.height):
+                        if gameState.hasFood(i, j):
                             foodPosition = i, j
                             distance = util.manhattanDistance(pacman_position, foodPosition)
                             if distance < minDistance:
@@ -229,8 +267,8 @@ class QLearningAgent(BustersAgent, ReinforcementAgent):
                 state += '(' + str(minDistance)
             else:
                 state += '()('
-                
-            #state += ')(' + ('1' if game_state.getNumFood() > 0 else '0')
+            """    
+            #state += ')(' + ('1' if gameState.getNumFood() > 0 else '0')
 
             return state + ')]'
 
@@ -242,30 +280,14 @@ class QLearningAgent(BustersAgent, ReinforcementAgent):
           Should return 0.0 if we have never seen a state
           or the Q node value otherwise
         """
+        # Si no existe ese estado, lo generamos con 0 a todas las posibles acciones que se permiten
         if state not in self.qtable:
             self.qtable[state] = [float(0) for x in POSSIBLE_ACTIONS]
         
-
+        # Devolvemos el valor de la qtable para ese estado con esa accion
         return self.qtable[state][POSSIBLE_ACTIONS.index(action)]
 
-    #NEW
-    def setQValue(self, state, action, value):
-        value_ = float(0)
-        if state in self.qtable:
-            value_ = value
-        
-        column = POSSIBLE_ACTIONS.index(action)
-        self.qtable[state][column] = value_
-
-        return value_
-    """
-    def computePosition(self, state):
-        
-        #Compute the row of the qtable for a given state.
-        #For instance, the state (3,1) is the row 7
-        
-        return state[0]+state[1]*4
-    """
+    
     
 
     #MODIFIED
@@ -277,11 +299,13 @@ class QLearningAgent(BustersAgent, ReinforcementAgent):
           terminal state, you should return a value of 0.0.
         """
         legalActions = self.getLegalActions(state)
-        if len(legalActions)==0:
+        # Si no quedan acciones --> estamos en el estado final --> 0
+        if len(legalActions) == 0:
           return 0
+        # Si el estado no existe se devuelve un valor 0
         if state not in self.qtable:
             return 0
-        #return max(self.q_table[self.computePosition(state)])
+        # Devuelve la acción con mayor valor q en ese estado
         return max(self.qtable[state])
 
     #NOT MODIFIED
@@ -335,35 +359,40 @@ class QLearningAgent(BustersAgent, ReinforcementAgent):
 
     #MODIFIED
     def update(self, state, action, nextState, reward):
-        print("Entro en update")
         '''
         if terminal_state:
         Q(state,action) <- (1-self.alpha) Q(state,action) + self.alpha * (r + 0)
         else:
         Q(state,action) <- (1-self.alpha) Q(state,action) + self.alpha * (r + self.discount * max a' Q(nextState, a'))
         '''
-        qstate = self.computeQLearningState(state)
-        qnextState = self.computeQLearningState(nextState)
+        # Calculamos el estado actual
+        qstate_actual = self.definicionEstado(state)
+        # Calculamos el siguiente estado
+        qstate_siguiente = self.definicionEstado(nextState)
         
-
+        # Miramos cual es la acción que se solicita actualizar
         column = POSSIBLE_ACTIONS.index(action)
 
+        # Si el estado no exisste crearemos esa fila con 0
+        if qstate_actual not in self.qtable:
+            self.qtable[qstate_actual] = [float(0) for _ in POSSIBLE_ACTIONS]
         
-        
-        if qstate not in self.qtable:
-            self.qtable[qstate] = [float(0) for _ in POSSIBLE_ACTIONS]
+        # Obtemos el qvalue actual de esa acción en ese estado
+        qValue = self.qtable[qstate_actual][column]
 
-        qValue = self.qtable[qstate][column]
+        if len(self.getLegalActions(nextState)) == 0:
+            self.qtable[qstate_actual][column] = (1-self.alpha)*qValue + self.alpha* (reward + 0)
+        else:
+            # Lo actualizamos
+            self.qtable[qstate_actual][column] = (1-self.alpha)*qValue + self.alpha* (reward + self.discount*self.getValue(qstate_siguiente))
         
-        self.qtable[qstate][column] = (1-self.alpha)*qValue + self.alpha* (reward + self.discount*self.getValue(qnextState))
-        
-        print("Update State ["+ str(qstate) +"]")
-        print("Update State [" + str(qstate) + "][" + action + "]=>[" + str(qnextState) + "] r=" + str(reward))
-        self.stats['qtable_updates'] += 1
+        #print("Update State ["+ str(qstate_actual) +"]")
+        #print("Update State [" + str(qstate_actual) + "][" + action + "]=>[" + str(qstate_siguiente) + "] r=" + str(reward))
+        self.num_updates += 1
 
         # TRACE for updated q-table. Comment the following lines if you do not want to see that trace
-        print("Q-table:")
-        self.printQtable()
+        #print("Q-table:")
+        #self.printQtable()
 
     def getPolicy(self, state):
         "Return the best action in the qtable for a given state"
@@ -376,29 +405,28 @@ class QLearningAgent(BustersAgent, ReinforcementAgent):
     #NEW 
     """Función para ejecutar el final de un episodio"""
     def final(self, state):
-        self.stats['final_score'] = state.getScore()
+        self.score_final = state.getScore()
 
-        print('Final Statictics:')
-        for stat in enumerate(self.stats):
-            print('  '+str(stat[0])+"/"+str(stat[1]))
+        print('Estadísticas episodio ' + str(self.episodesSoFar)+": ")
+        print('num_updates acumulado:  '+str(self.num_updates)+", score final: "+str(self.score_final))
 
         return ReinforcementAgent.final(self, state)
 
     
 
     """ """
-    def chooseAction(self, game_state):
+    def chooseAction(self, gameState):
         #Cogemos el estado del juego
-        key_state = self.computeQLearningState(game_state)
+        key_state = self.definicionEstado(gameState)
         #Seleccionamos la mejor opcion de la qstate
         action = self.getActionQLearning(key_state)
 
         
         #Mandamos realizar la accion
-        ReinforcementAgent.doAction(self, game_state, action)
+        ReinforcementAgent.doAction(self, gameState, action)
 
         
-        legal = game_state.getLegalPacmanActions()
+        legal = gameState.getLegalPacmanActions()
         if action not in legal:
             return random.choice(legal)
         

@@ -1,0 +1,11 @@
+1. Estado definido por las casillas arriba, abajo, izquierda, derecha, la distancia al fantasma mas cercano y el número de fantasmas que quedan por comer
+    Parámetros: alpha=0.8,epsilon=0.2,gamma=0.9, n_training = 100
+    Realiza correctamente el aprendizaje de: AA1, AA2 y AA3
+    Se queda bloqueado en: AA4 con un fastasma --> Paro ejecución
+    Se queda bloqueado en: AA4 con dos fastasma --> Finalizo ejecución
+
+2. Incorporo max de tiempo que puede estar aprendiendo en un episodio para si se queda bloqueado pare.
+
+3. Nuevo estado definido por las casillas arriba, abajo, arriba-derecha, arriba-izquierda, abajo-derecha, abajo-izquierda, derecha y abajo (8 posiciones), la distancia a fantasma más cercano y el número de fantasmas que quedan vivos
+    Parámetros: alpha=0.8,epsilon=0.2,gamma=0.9, n_training = 100, maxMovements = 2500
+

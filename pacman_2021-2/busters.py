@@ -349,13 +349,14 @@ class BustersGameRules(object):
     and how the game starts and ends.
     """
 
-    def newGame( self, layout, pacmanAgent, ghostAgents, display, maxMoves= -1 ):
+    def newGame( self, layout, pacmanAgent, ghostAgents, display, maxMoves= -1, maxTicks = -1 ):
         agents = [pacmanAgent] + ghostAgents
         initState = GameState()
         initState.initialize( layout, len(ghostAgents))
-        game = Game(agents, display, self)
+        game = Game(agents, display, self, maxTicks = maxTicks)
         game.state = initState
         game.state.maxMoves = maxMoves
+        game.state.maxTicks = maxTicks
         return game
 
     def process(self, state, game):
@@ -536,6 +537,8 @@ def readCommand( argv ):
                       help='Renders the ghosts in the display (cheating)', default=True)
     parser.add_option('-t', '--frameTime', dest='frameTime', type='float',
                       help=default('Time to delay between frames; <0 means keyboard'), default=0.1)
+    parser.add_option('-m', '--maxTicks', dest='maxTicks', type='int',
+                      help=default('maximum number of ticks in a game or episode'), metavar='MAX_TICKS', default=-1)                  
 
     options, otherjunk = parser.parse_args()
     if len(otherjunk) != 0:
@@ -565,11 +568,11 @@ def readCommand( argv ):
                                                                   options.showGhosts, \
                                                                   frameTime = options.frameTime)
     args['numGames'] = options.numGames
+    args['maxTicks'] = options.maxTicks
 
     return args
 
 def loadAgent(pacman, nographics):
-    print("cargo"+str(pacman))
     # Looks through all pythonPath Directories for the right module,
     pythonPathStr = os.path.expandvars("$PYTHONPATH")
     if pythonPathStr.find(';') == -1:
@@ -589,22 +592,28 @@ def loadAgent(pacman, nographics):
             except ImportError:
                 continue
             if pacman in dir(module):
-                print("Encuentro" + str(pacman) )
+                
                 if nographics and modulename == 'keyboardAgents.py':
                     raise Exception('Using the keyboard requires graphics (not text display)')
                 return getattr(module, pacman)
     raise Exception('The agent ' + pacman + ' is not specified in any *Agents.py.')
 
-def runGames( layout, pacman, ghosts, display, numGames, maxMoves=-1):
+def runGames( layout, pacman, ghosts, display, numGames, maxMoves=-1, maxTicks=-1):
     # Hack for agents writing to the display
     import __main__
     __main__.__dict__['_display'] = display
+
+    print()
+    print("New execution: layout " )
+    print(layout)
+    print( "numGames " + str(numGames))
+    print( "numGhosts " + str(len(ghosts)))
 
     rules = BustersGameRules()
     games = []
 
     for i in range( numGames ):
-        game = rules.newGame( layout, pacman, ghosts, display, maxMoves )
+        game = rules.newGame( layout, pacman, ghosts, display, maxMoves, maxTicks )
         game.run()
         games.append(game)
 
@@ -612,6 +621,7 @@ def runGames( layout, pacman, ghosts, display, numGames, maxMoves=-1):
         scores = [game.state.getScore() for game in games]
         wins = [game.state.isWin() for game in games]
         winRate = wins.count(True)/ float(len(wins))
+        print()
         print('Average Score:', sum(scores) / float(len(scores)))
         print('Scores:       ', ', '.join([str(score) for score in scores]))
         print('Win Rate:      %d/%d (%.2f)' % (wins.count(True), len(wins), winRate))
@@ -631,4 +641,5 @@ if __name__ == '__main__':
     > python pacman.py --help
     """
     args = readCommand( sys.argv[1:] ) # Get game components based on input
+   
     runGames( **args )
