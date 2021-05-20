@@ -143,7 +143,7 @@ class QLearningAgent(BustersAgent, ReinforcementAgent):
         posicion_fantasmas = gameState.getGhostPositions()
 
         state = "[("
-        state+= self.modelo3(gameState, pacman_position, posicion_fantasmas)
+        state+= self.modelo6(gameState, pacman_position, posicion_fantasmas)
         return state + ")]"
 
     # Returns Q(state,action)
@@ -650,7 +650,7 @@ class QLearningAgent(BustersAgent, ReinforcementAgent):
 
         return state    
 
-    def modelotest (self, gameState, pacman_position, posicion_fantasmas):
+    def modelo6 (self, gameState, pacman_position, posicion_fantasmas):
         # Relative position of closest ghost and food
         state = ""
         for i in range(-1,2,1):
